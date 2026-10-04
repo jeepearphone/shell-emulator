@@ -1,0 +1,5 @@
+ls
+unknown_cmd arg
+cd a b
+ls "unclosed
+cd /home

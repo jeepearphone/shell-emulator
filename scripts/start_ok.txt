@@ -1,0 +1,5 @@
+# Стартовый скрипт: все команды корректны
+ls
+ls -l $USERPROFILE
+cd C:\Users
+cd "my folder"
