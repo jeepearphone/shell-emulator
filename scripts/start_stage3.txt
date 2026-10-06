@@ -1,0 +1,15 @@
+# --- команды этапа 1 (заглушки) ---
+ls
+ls -l $USERPROFILE
+cd "my folder"
+# --- VFS: что загружено в память ---
+vfs-info
+# --- ошибки ---
+unknown_cmd arg
+cd a b
+ls "unclosed
+vfs-info extra
+vfs-init extra
+# --- vfs-init: замена на VFS по умолчанию ---
+vfs-init
+vfs-info

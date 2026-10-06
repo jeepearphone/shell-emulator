@@ -1,19 +1,26 @@
-import os
 import tkinter as tk
+from tkinter import messagebox
 
-from commands import execute, ShellError, ExitShell
+from commands import execute, Session, ShellError, ExitShell
+from vfs import VFS, VFSError
 
 
 class ShellGUI:
     def __init__(self, settings, config_error=None):
         self.settings = settings
+
+        # загружаем VFS в память; если не вышло, остаёмся с VFS по умолчанию
+        self.vfs = VFS()
+        vfs_error = None
         if settings["vfs"]:
-            self.vfs_name = os.path.basename(os.path.normpath(settings["vfs"]))
-        else:
-            self.vfs_name = "no-vfs"
+            try:
+                self.vfs.load(settings["vfs"])
+            except VFSError as e:
+                vfs_error = str(e)
+        self.session = Session(self.vfs, self.confirm)
 
         self.root = tk.Tk()
-        self.root.title(f"Эмулятор - [{self.vfs_name}]")
+        self.root.title(f"Эмулятор - [{self.vfs.name}]")  # имя VFS в заголовке
         self.root.geometry("800x500")
 
         self.output = tk.Text(
@@ -36,8 +43,23 @@ class ShellGUI:
         self.show_debug()
         if config_error:
             self.print(f"Error: {config_error}", "error")
+        if vfs_error:
+            self.print(f"Error: {vfs_error}", "error")
+            self.print("[debug] using default (empty) VFS", "debug")
+        else:
+            dirs, files = self.vfs.count()
+            self.print(
+                f"[debug] VFS '{self.vfs.name}' in memory: "
+                f"{dirs} directories, {files} files", "debug",
+            )
         if settings["script"]:
             self.root.after(100, self.run_script, settings["script"])
+
+    def confirm(self, question):
+        return messagebox.askyesno(
+            "Подтверждение", question,
+            parent=self.root, icon="warning", default="no",
+        )
 
     def print(self, text, tag=None):
         self.output.config(state="normal")
@@ -54,10 +76,9 @@ class ShellGUI:
             self.print(f"[debug]   {key} = {shown}", "debug")
 
     def run_line(self, line):
-        """Выполняет строку и показывает ввод и вывод. Возвращает 'ok', 'error' или 'exit'."""
-        self.print(f"{self.vfs_name}$ {line}", "prompt")
+        self.print(f"{self.vfs.name}$ {line}", "prompt")
         try:
-            result = execute(line)
+            result = execute(line, self.session)
             if result:
                 self.print(result)
             return "ok"
