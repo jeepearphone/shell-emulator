@@ -117,6 +117,12 @@ class VFS:
                 raise VFSError("No such file or directory")
         return parts, self.get_node(parts)
 
+    # ---------- изменение (только в памяти) ----------
+
+    def remove(self, parts):
+        parent = self.get_node(parts[:-1])
+        del parent[parts[-1]]
+
     # ---------- информация ----------
 
     def count(self, node=None):

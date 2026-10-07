@@ -120,6 +120,49 @@ def cmd_cat(args, session):
     return text
 
 
+def cmd_rm(args, session):
+    recursive = False  # -r: разрешено удалять папки вместе с содержимым
+    force = False      # -f: не ругаться на то, чего и так нет
+    paths = []
+    for arg in args:
+        if arg.startswith("-") and len(arg) > 1:
+            for letter in arg[1:]:
+                if letter in "rR":
+                    recursive = True
+                elif letter == "f":
+                    force = True
+                else:
+                    raise ShellError(f"rm: invalid option -- '{letter}'")
+        else:
+            paths.append(arg)
+    if not paths:
+        if force:
+            return ""
+        raise ShellError("rm: missing operand")
+
+    errors = []
+    for path in paths:
+        try:
+            parts, node = session.vfs.resolve(path, session.cwd)
+        except VFSError as e:
+            if not force:
+                errors.append(f"rm: cannot remove '{path}': {e}")
+            continue
+
+        if not parts:
+            errors.append(f"rm: cannot remove '{path}': it is the root directory")
+        elif session.cwd[:len(parts)] == parts:
+            errors.append(f"rm: cannot remove '{path}': it is the current directory or its parent")
+        elif isinstance(node, dict) and not recursive:
+            errors.append(f"rm: cannot remove '{path}': Is a directory")
+        else:
+            session.vfs.remove(parts)
+
+    if errors:
+        raise ShellError("\n".join(errors))
+    return ""
+
+
 def cmd_exit(args, session):
     if args:
         raise ShellError("exit: too many arguments")
@@ -171,6 +214,7 @@ COMMANDS = {
     "cd": cmd_cd,
     "pwd": cmd_pwd,
     "cat": cmd_cat,
+    "rm": cmd_rm,
     "exit": cmd_exit,
     "vfs-info": cmd_vfs_info,
     "vfs-init": cmd_vfs_init,

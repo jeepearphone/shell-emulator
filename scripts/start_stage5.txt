@@ -1,0 +1,32 @@
+# --- что есть до удаления ---
+ls -l /home/user/docs
+# --- rm: один файл ---
+rm /home/user/docs/todo.txt
+ls /home/user/docs
+# --- rm: относительные пути и несколько файлов сразу ---
+cd /home/user
+rm notes.txt docs/report.txt
+ls
+ls docs
+# --- rm -r: папка целиком ---
+cd /
+rm -r etc
+ls
+# --- rm -f: того, чего нет, без ошибки ---
+rm -f /nosuch.txt
+# --- ошибки ---
+rm
+rm /nosuch.txt
+rm /nosuch1.txt /nosuch2.txt
+rm home
+rm -x readme.txt
+rm -r /
+rm /readme.txt/x
+cat /home/user/notes.txt
+cd /home/user
+rm -r /home
+rm -r .
+rm -r ..
+# --- что осталось в памяти ---
+cd /
+vfs-info
