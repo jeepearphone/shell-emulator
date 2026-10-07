@@ -1,0 +1,36 @@
+pwd
+ls
+ls -l
+cd /home/user
+pwd
+ls
+cd docs
+pwd
+cd ..
+pwd
+cd ../../etc
+pwd
+cd
+pwd
+ls /home/user/docs
+ls -l home/user
+ls readme.txt
+ls "/home/user"
+cat readme.txt
+cat /etc/config.txt
+cat home/user/notes.txt home/user/docs/todo.txt
+cd $EMU_DIR
+pwd
+cd /
+ls /nosuch
+ls -x
+ls a b
+cd /nosuch
+cd readme.txt
+cd a b
+cat
+cat /nosuch.txt
+cat home
+cat readme.txt/x
+pwd extra
+unknown_cmd

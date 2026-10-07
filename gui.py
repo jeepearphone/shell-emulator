@@ -76,7 +76,7 @@ class ShellGUI:
             self.print(f"[debug]   {key} = {shown}", "debug")
 
     def run_line(self, line):
-        self.print(f"{self.vfs.name}$ {line}", "prompt")
+        self.print(f"{self.vfs.name}:{self.session.cwd_path()}$ {line}", "prompt")
         try:
             result = execute(line, self.session)
             if result:

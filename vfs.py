@@ -35,7 +35,6 @@ class VFS:
 
 
     def load(self, path):
-        """Читает папку с диска в память"""
         if not os.path.exists(path):
             raise VFSError(f"VFS not found: {path}")
         if not os.path.isdir(path):
@@ -50,7 +49,6 @@ class VFS:
         self.name = os.path.basename(self.source) or self.source
 
     def _read_dir(self, path):
-        """Рекурсия превращает папку на диске в словарь"""
         node = {}
         for name in sorted(os.listdir(path)):
             full = os.path.join(path, name)
@@ -88,10 +86,40 @@ class VFS:
         except OSError as e:
             raise VFSError(f"cannot clear '{self.source}': {e}")
 
+    # ---------- поиск по пути ----------
 
+    def get_node(self, parts):
+        """Спускается от корня по списку имён и возвращает то, что там лежит."""
+        node = self.root
+        for name in parts:
+            node = node[name]
+        return node
+
+    def resolve(self, path, cwd):
+        """Ищет файл или папку по пути"""
+        if path.startswith("/"):
+            parts = []
+        else:
+            parts = list(cwd)  # относительный путь
+
+        for piece in path.split("/"):
+            if piece == "" or piece == ".":
+                continue
+            node = self.get_node(parts)
+            if not isinstance(node, dict):
+                raise VFSError("Not a directory")
+            if piece == "..":
+                if parts:
+                    parts.pop()
+            elif piece in node:
+                parts.append(piece)
+            else:
+                raise VFSError("No such file or directory")
+        return parts, self.get_node(parts)
+
+    # ---------- информация ----------
 
     def count(self, node=None):
-        """Возвращает пару (сколько папок, сколько файлов) внутри node."""
         if node is None:
             node = self.root
         dirs, files = 0, 0
@@ -105,7 +133,6 @@ class VFS:
         return dirs, files
 
     def tree_lines(self, node=None, indent=0):
-        """Возвращает дерево в виде списка строк с отступами."""
         if node is None:
             node = self.root
         lines = []

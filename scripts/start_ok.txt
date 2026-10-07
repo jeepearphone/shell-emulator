@@ -1,5 +1,4 @@
-# Стартовый скрипт: все команды корректны
+pwd
 ls
-ls -l $USERPROFILE
-cd C:\Users
-cd "my folder"
+ls -l
+cd /

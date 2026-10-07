@@ -18,6 +18,10 @@ class Session:
     def __init__(self, vfs, confirm):
         self.vfs = vfs          # загруженная VFS
         self.confirm = confirm  # функция: текст вопроса -> True (да) / False (нет)
+        self.cwd = []           # текущая папка: [] = корень, ['home', 'user'] = /home/user
+
+    def cwd_path(self):
+        return "/" + "/".join(self.cwd)
 
 
 def parse(line):
@@ -36,14 +40,84 @@ def parse(line):
     return result
 
 
+def format_entry(name, node, long_format):
+    is_dir = isinstance(node, dict)
+    shown = name + "/" if is_dir else name
+    if not long_format:
+        return shown
+    kind = "d" if is_dir else "-"
+    size = "-" if is_dir else len(node)
+    return f"{kind} {size:>8}  {shown}"
+
+
 def cmd_ls(args, session):
-    return f"ls {args}"
+    long_format = False
+    paths = []
+    for arg in args:
+        if arg.startswith("-") and len(arg) > 1:
+            for letter in arg[1:]:
+                if letter != "l":
+                    raise ShellError(f"ls: invalid option -- '{letter}'")
+            long_format = True
+        else:
+            paths.append(arg)
+    if len(paths) > 1:
+        raise ShellError("ls: too many arguments")
+
+    path = paths[0] if paths else "."
+    try:
+        parts, node = session.vfs.resolve(path, session.cwd)
+    except VFSError as e:
+        raise ShellError(f"ls: cannot access '{path}': {e}")
+
+    if isinstance(node, dict):
+        entries = [(name, node[name]) for name in sorted(node)]
+    else:
+        entries = [(path, node)]
+
+    lines = [format_entry(name, child, long_format) for name, child in entries]
+    if long_format:
+        return "\n".join(lines)
+    return "  ".join(lines)
 
 
 def cmd_cd(args, session):
     if len(args) > 1:
         raise ShellError("cd: too many arguments")
-    return f"cd {args}"
+    path = args[0] if args else "/"
+    try:
+        parts, node = session.vfs.resolve(path, session.cwd)
+    except VFSError as e:
+        raise ShellError(f"cd: {path}: {e}")
+    if not isinstance(node, dict):
+        raise ShellError(f"cd: {path}: Not a directory")
+    session.cwd = parts
+    return ""
+
+
+def cmd_pwd(args, session):
+    if args:
+        raise ShellError("pwd: too many arguments")
+    return session.cwd_path()
+
+
+def cmd_cat(args, session):
+    if not args:
+        raise ShellError("cat: missing file operand")
+    chunks = []
+    for path in args:
+        try:
+            parts, node = session.vfs.resolve(path, session.cwd)
+        except VFSError as e:
+            raise ShellError(f"cat: {path}: {e}")
+        if isinstance(node, dict):
+            raise ShellError(f"cat: {path}: Is a directory")
+        chunks.append(node.decode("utf-8", errors="replace"))
+
+    text = "".join(chunks).replace("\r\n", "\n")
+    if text.endswith("\n"):
+        text = text[:-1]  # окно само добавит перенос строки в конце
+    return text
 
 
 def cmd_exit(args, session):
@@ -53,7 +127,6 @@ def cmd_exit(args, session):
 
 
 def cmd_vfs_info(args, session):
-    """показывает, что сейчас лежит в VFS."""
     if args:
         raise ShellError("vfs-info: too many arguments")
     vfs = session.vfs
@@ -86,6 +159,7 @@ def cmd_vfs_init(args, session):
         vfs.init_default()
     except VFSError as e:
         raise ShellError(f"vfs-init: {e}")
+    session.cwd = []  # старой папки больше нет, возвращаемся в корень
 
     if vfs.source is not None:
         return f"VFS replaced with default (empty) VFS, directory cleared: {vfs.source}"
@@ -95,6 +169,8 @@ def cmd_vfs_init(args, session):
 COMMANDS = {
     "ls": cmd_ls,
     "cd": cmd_cd,
+    "pwd": cmd_pwd,
+    "cat": cmd_cat,
     "exit": cmd_exit,
     "vfs-info": cmd_vfs_info,
     "vfs-init": cmd_vfs_init,

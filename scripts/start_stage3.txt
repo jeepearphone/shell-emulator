@@ -1,7 +1,6 @@
-# --- команды этапа 1 (заглушки) ---
+pwd
 ls
-ls -l $USERPROFILE
-cd "my folder"
+ls -l
 # --- VFS: что загружено в память ---
 vfs-info
 # --- ошибки ---
